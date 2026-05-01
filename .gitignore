@@ -1,0 +1,13 @@
+# AgentFiles links and local automation
+AGENTS*.md
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Project runtime artifacts (generated at user's machine)
+WifiReconnect/
+*.log
+*.log.old
