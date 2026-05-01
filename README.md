@@ -17,7 +17,7 @@ Windows occasionally drops Wi-Fi after resuming from sleep, roaming between acce
 ### 1. Download
 
 ```powershell
-git clone https://github.com/YOUR_USERNAME/Reconnect-PreferredWifi.git
+git clone https://github.com/powerfulhang/Reconnect-PreferredWifi.git
 cd Reconnect-PreferredWifi
 ```
 
@@ -30,7 +30,7 @@ Or just download `Reconnect-PreferredWifi.ps1` — it has no dependencies.
 powershell -ExecutionPolicy Bypass -File .\Reconnect-PreferredWifi.ps1 -Install
 
 # Or pin a specific SSID and interval
-powershell -ExecutionPolicy Bypass -File .\Reconnect-PreferredWifi.ps1 -Install -Ssid "MyHomeWiFi" -IntervalHours 1
+powershell -ExecutionPolicy Bypass -File .\Reconnect-PreferredWifi.ps1 -Install -InstallSsid "MyHomeWiFi" -IntervalHours 1
 ```
 
 After installation, the first check runs 2 minutes later, then repeats on your chosen interval.
@@ -46,8 +46,18 @@ This shows adapter state, current SSID, task registration, last run result, and 
 ### 4. Run a manual check (no admin required)
 
 ```powershell
+# Auto-detect the preferred network
 powershell -ExecutionPolicy Bypass -File .\Reconnect-PreferredWifi.ps1
+
+# Or target a specific SSID
+powershell -ExecutionPolicy Bypass -File .\Reconnect-PreferredWifi.ps1 -Ssid "MyHomeWiFi"
 ```
+
+## Unicode SSID Support
+
+The script works correctly with SSIDs containing Chinese, Japanese, Korean, emoji, and other non-ASCII characters. It uses `Get-NetConnectionProfile` (Network List Manager API) to read SSIDs via Windows' Unicode-native APIs instead of parsing `netsh` console output, which can mangle non-ASCII characters through the legacy code page (CP936/GBK).
+
+If your SSID contains non-ASCII characters, specifying it with `-InstallSsid` during installation is recommended to bypass the auto-detection path, which still relies on `netsh` text output for profile enumeration.
 
 ## How It Works
 

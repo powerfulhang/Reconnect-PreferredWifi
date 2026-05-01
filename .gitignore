@@ -7,6 +7,9 @@ AGENTS*.md
 .DS_Store
 Thumbs.db
 
+# Claude Code
+.claude/
+
 # Project runtime artifacts (generated at user's machine)
 WifiReconnect/
 *.log

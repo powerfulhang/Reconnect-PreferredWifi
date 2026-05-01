@@ -209,9 +209,23 @@ function Get-WifiAdapter {
 }
 
 function Get-CurrentSsid {
-    # Locale-safe parse: the acronym SSID is preserved in netsh output even
-    # on localized Windows; BSSID lines start with B, so anchoring on
-    # "^\s*SSID\s+:" only matches the desired line.
+    # Primary: Get-NetConnectionProfile uses the Network List Manager API
+    # internally (Unicode), avoiding netsh's console-code-page text encoding
+    # issues. When the SSID contains characters outside the active code page
+    # (e.g. CP936/GBK), netsh may output raw hex bytes instead of the actual
+    # SSID, making string comparison impossible.
+    try {
+        $profile = Get-NetConnectionProfile -ErrorAction SilentlyContinue |
+                   Where-Object { $_.InterfaceAlias -match 'Wi-?Fi|Wireless|WLAN|802\.11' } |
+                   Select-Object -First 1
+        if ($profile -and $profile.Name) {
+            return $profile.Name
+        }
+    } catch {}
+
+    # Fallback: locale-safe netsh text parse. SSID is preserved as an acronym
+    # in netsh output even on localized Windows; BSSID lines start with B, so
+    # anchoring on "^\s*SSID\s+:" only matches the desired line.
     $lines = (& netsh wlan show interfaces) 2>$null
     foreach ($line in $lines) {
         if ($line -match '^\s*SSID\s+:\s*(.+?)\s*$') {
@@ -277,12 +291,11 @@ function Wait-ForConnection {
     )
     $deadline = (Get-Date).AddSeconds($Timeout)
     while ((Get-Date) -lt $deadline) {
-        $cur = Get-CurrentSsid
-        if ($cur -and $cur -eq $TargetSsid) {
-            $a = Get-WifiAdapter
-            if ($a) {
-                $ip = Has-UsableIpv4 -IfIndex $a.ifIndex
-                if ($ip) { return $ip }
+        $wifi = Get-WifiAdapter
+        if ($wifi -and $wifi.Status -eq 'Up') {
+            $ip = Has-UsableIpv4 -IfIndex $wifi.ifIndex
+            if ($ip) {
+                return $ip
             }
         }
         Start-Sleep -Milliseconds 800
@@ -386,12 +399,19 @@ function Invoke-Check {
     Start-Sleep -Seconds 1
 
     Write-Log INFO ("Issuing: netsh wlan connect name=`"$target`" interface=`"$($wifi.Name)`"")
-    & netsh wlan connect name="$target" ssid="$target" interface="$($wifi.Name)" | Out-Null
+    & netsh wlan connect name="$target" interface="$($wifi.Name)" | Out-Null
 
     Write-Log INFO "Waiting up to $TimeoutSec s for association and IPv4..."
     $ip = Wait-ForConnection -TargetSsid $target -Timeout $TimeoutSec
     if ($ip) {
-        Write-Log OK "Connected to '$target' with IP $ip."
+        # Resolve the display-friendly SSID from the live adapter state.
+        # $target may carry encoding artifacts from the scheduled-task
+        # command line; Get-CurrentSsid reads the Unicode-native NLM API.
+        $displaySsid = Get-CurrentSsid
+        if (-not $displaySsid -or $displaySsid -match '^(Identifying|Unidentified|正在识别|未识别)') {
+            $displaySsid = $target
+        }
+        Write-Log OK "Connected to '$displaySsid' with IP $ip."
         exit 0
     } else {
         Write-Log ERROR "Did not associate to '$target' within $TimeoutSec s."
