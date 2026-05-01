@@ -356,6 +356,16 @@ function Test-ShouldReconnect {
                 Reason = "associated to '$ssid' but no usable IPv4 (DHCP stuck)"
             }
         }
+        # SSID detection failed but adapter is Up — defer to IP check
+        # to avoid false-positive reconnects when NLM / netsh is transiently
+        # unable to resolve the SSID name.
+        $ip = Has-UsableIpv4 -IfIndex $wifi.ifIndex
+        if ($ip) {
+            return @{
+                Should = $false
+                Reason = "Wi-Fi adapter is Up with IP $ip (SSID detection failed)"
+            }
+        }
     }
 
     return @{
@@ -557,7 +567,8 @@ function Invoke-Status {
     } else {
         Write-Console ERROR 'No Wi-Fi adapter found.'
     }
-    Write-Console INFO ("Current SSID    : " + $(if (Get-CurrentSsid) { Get-CurrentSsid } else { '(disconnected)' }))
+    $currentSsid = Get-CurrentSsid
+    Write-Console INFO ("Current SSID    : " + $(if ($currentSsid) { $currentSsid } else { '(disconnected)' }))
 
     $auto = Get-FirstAutoConnectSsid
     Write-Console INFO ("Preferred SSID  : " + $(if ($auto) { $auto } else { '(no auto-connect profile)' }))

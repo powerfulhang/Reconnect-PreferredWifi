@@ -1,12 +1,6 @@
 # AgentFiles links and local automation
 AGENTS*.md
 
-# Editor and OS files
-.idea/
-.vscode/
-.DS_Store
-Thumbs.db
-
 # Claude Code
 .claude/
 
@@ -14,3 +8,22 @@ Thumbs.db
 WifiReconnect/
 *.log
 *.log.old
+
+# Python temporary files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+*-venv/
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
